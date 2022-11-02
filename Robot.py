@@ -2,9 +2,9 @@ import sys
 
 class Robot:
     def __init__(self, fileName ):
-        self.pos_x = -1
-        self.pos_y = -1
-        self.pos_z = 0
+        self.posX = -1
+        self.posY = -1
+        self.posZ = 0
         #File opening to assign map coordinate map
         self.coordinateMap = self.loadMap(fileName)
 
@@ -20,7 +20,7 @@ class Robot:
                 #Loading dimensions of the map
                 if firstRun:
                    dimensions = line.split(",") 
-                #    coordinateMap[int(dimensions[0])][int(dimensions[1])]
+                #coordinateMap[int(dimensions[0])][int(dimensions[1])]
                    print(dimensions[0], dimensions[1])
                    firstRun=False
                 else:
@@ -30,8 +30,8 @@ class Robot:
                         row.append(char)
                         #Searching for the 'R' to know the starting coordinate
                         if char == "R":
-                            self.pos_x = rowCounter
-                            self.pos_y = columnCounter
+                            self.posX = rowCounter
+                            self.posY = columnCounter
                         columnCounter+=1
                     columnCounter=0
                     rowCounter+=1
