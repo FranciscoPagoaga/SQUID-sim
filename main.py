@@ -2,8 +2,9 @@ import sys
 from Robot import Robot
 
 def main():
-    fileName = sys.argv[1]
-    newMap = Robot(fileName)
+    fileNameMap = sys.argv[1]
+    fileNameDeliveries = sys.argv[2]
+    newMap = Robot(fileNameMap,fileNameDeliveries)
     print()
 
 if __name__ == "__main__":
