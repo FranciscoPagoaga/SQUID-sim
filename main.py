@@ -4,7 +4,8 @@ from Robot import Robot
 def main():
     fileNameMap = sys.argv[1]
     fileNameDeliveries = sys.argv[2]
-    newMap = Robot(fileNameMap,fileNameDeliveries)
+    newRobot = Robot(fileNameMap,fileNameDeliveries)
+    newRobot.BreadthFirstSearch()
     print()
 
 if __name__ == "__main__":

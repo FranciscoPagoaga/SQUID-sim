@@ -17,8 +17,6 @@ class Robot:
         lines = self.readMap(fileNameMap)
         self.coordinateMap = self.loadMap(lines)
 
-        print(self.borderX, self.borderY)
-
         # File opening to create delivery list
         lines = self.readMap(fileNameDeliveries)
         tmpDeliveries = self.loadDeliveries(lines)
@@ -42,8 +40,8 @@ class Robot:
             # Loading dimensions of the map
             if firstRun:
                 dimensions = line.split(",")
-                self.borderY = dimensions[0]
-                self.borderX = dimensions[1]
+                self.borderY = int(dimensions[0])
+                self.borderX = int(dimensions[1])
                 firstRun = False
             else:
                 # Fill map with its matrices
@@ -52,8 +50,8 @@ class Robot:
                     row.append(char)
                     # Searching for the 'R' to know the starting coordinate
                     if char == "R":
-                        self.posY = rowCounter
-                        self.posX = columnCounter
+                        self.posY = int(rowCounter)
+                        self.posX = int(columnCounter)
                     columnCounter += 1
                 columnCounter = 0
                 rowCounter += 1
@@ -88,6 +86,8 @@ class Robot:
         loadposX = int(PosList[1])
         # Skips the last parenthesis inside the splitted result
         loadPosZ = int((PosList[2])[:-1])
+        
+        #split coordinates
         PosList = line[3].split(",")
         # Skips the first parenthesis inside the splitted result
         dropposY = int((PosList[0])[1:])
@@ -96,8 +96,11 @@ class Robot:
         dropPosZ = int((PosList[2])[:-1])
         return DeliveryState(loadDestination, loadposY, loadposX, loadPosZ, dropDestination, dropposY, dropposX, dropPosZ)
 
-    # def BreadthFirstSearch(self):
-
+    def BreadthFirstSearch(self):
+        if(self.isMoveValid("x",1)):
+            print("valid move")
+        else:
+            print("not valid")
     # This validates if the move could be valid
 
     def isMoveValid(self, axis, value):
@@ -107,7 +110,7 @@ class Robot:
                 #Condition to validate if the move has a Border, and obstacle, or is up on the shelf
                 if  (self.coordinateMap[self.posY+value][self.posX] == "B" or
                     self.coordinateMap[self.posY+value][self.posX] == "X" or 
-                    self.coordinateMap[self.posY+value][self.posX].isNumeric() or
+                    self.coordinateMap[self.posY+value][self.posX].isnumeric() or
                     self.posZ > 0):
                     return False
                 else:
@@ -115,14 +118,36 @@ class Robot:
             else:
                 return False
         elif (axis == "x"):
+            #This gets a little convoluted but hang on.
+            #If on posX value is out of bounds, or it moves 
+            #to a position with a border or obstacle, its false
             if ((self.posX + value) < self.borderY and (self.posX + value) >= 0):
+                if  (self.coordinateMap[self.posY][self.posX+value] == "B" or
+                    self.coordinateMap[self.posY][self.posX+value] == "X"): 
+                    return False
+                else:
+                    #now, if it is valid, we need to check if the 
+                    #robot is up on the shelf, if it is not, its just true
+                    #due to all the conoditions met before
+                    if(self.posZ > 0):
+                        #If the robot is on the shelf, it can only move if it has a border,
+                        #or a number on the north of its future position 
+                        if  (self.coordinateMap[self.posY-1][self.posX+value].isnumeric() or
+                            self.coordinateMap[self.posY-1][self.posX+value] == "B"):
+                            return True
+                        else:
+                            return False
+                    else:
 
-                return True
+                        return True
             else:
                 return False
         elif (axis == "z"):
-            if  (self.coordinateMap[self.posY+1][self.posX] == "B" and  
-                (self.posZ + value < self.getShelfLevels() or 
+            #Z axis is simpler, just check if there is a Border on its north
+            #you must also check if the movement upwards is still on the range
+            #of the shelf, or it is going below zero level
+            if  (self.coordinateMap[self.posY-1][self.posX] == "B" and  
+                (self.posZ + value < self.getShelfLevels() and 
                 self.posZ + value >0)):
                 return True
             else:
@@ -130,9 +155,9 @@ class Robot:
                 
     def getShelfLevels(self):
         #Gets how many levels the shelf has by cheking either y+1 and x+1 or x-1
-        if(self.coordinateMap[self.PosY+1][self.posX+1].isNumeric()):
-            return int(self.coordinateMap[self.PosY+1][self.posX+1])
-        elif(self.coordinateMap[self.PosY+1][self.posX-1].isNumeric()):
-            return int(self.coordinateMap[self.PosY+1][self.posX-1])
+        if(self.coordinateMap[self.posY-1][self.posX+1].isnumeric()):
+            return int(self.coordinateMap[self.posY-1][self.posX+1])
+        elif(self.coordinateMap[self.posY-1][self.posX-1].isnumeric()):
+            return int(self.coordinateMap[self.posY-1][self.posX-1])
         else:
             return -1
