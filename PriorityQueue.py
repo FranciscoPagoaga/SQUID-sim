@@ -35,3 +35,14 @@ class PriorityQueue:
             return 1.5
         elif(node.action == "V_PUT"):
             return 2.5
+        else:
+            return 0
+        
+    def isOnQueue(self,node):
+        for frontierNode in self.queue:
+            if(node.state.toString() == frontierNode.state.toString()):
+                return True
+        return False
+
+    def getSize(self):
+        return len(self.queue)
