@@ -3,6 +3,7 @@ import time
 from Node import Node
 from DeliveryState import DeliveryState
 from Problem import Problem
+from  PriorityQueue import PriorityQueue
 
 class Robot:
     def __init__(self, fileNameMap, fileNameDeliveries):
@@ -123,7 +124,29 @@ class Robot:
                     node.addChild(childNode)
                     frontier.append(childNode)
 
-    # def uniformCostSearch(self):
+    def uniformCostSearch(self):
+        start_time = time.time()
+        node = self.rootNode
+        frontier = PriorityQueue()
+        explored = set()
+        frontier.insert(node)
+        while True:
+            if(frontier.isEmpty()):
+                print("No se encontro solucion")
+            
+            node = frontier.delete()
+            explored.add(node.state.toString())
+
+            for childNode in self.problem.getActions(node):
+                if(childNode.state.toString() not in explored and not frontier.isOnQueue(childNode)):
+                    if(self.problem.goalTest(childNode.state)):
+                        print("Tiempo transcurrido: " + str(time.time() - start_time) + " segundos")
+                        print("Nodos explorados: " + str(len(explored)))
+                        print("Nodos frontera: " + str(frontier.getSize()))
+                        return self.solution(childNode)
+                    node.addChild(childNode)
+                    frontier.insert(childNode)
+
 
 
     def isNotInFrontier(self, node, frontier):
@@ -133,6 +156,7 @@ class Robot:
         return True
 
     def solution(self, node):
+        print(node.cost)
         solutionList = []
         while(node.parent != None):
             solutionList.append(node.action)
