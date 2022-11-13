@@ -4,10 +4,15 @@ class DeliveryState:
         self.loadPosX = loadPosX
         self.loadPosY = loadPosY
         self.loadPosZ = loadPosZ
+        self.picked = False
         self.dropDestination = dropDestination
         self.dropPosX = dropPosX
         self.dropPosY = dropPosY
         self.dropPosZ = dropPosZ
         self.delivered = False
+        # print(f"X: {self.dropPosX}, Y: {self.dropPosY}")
+
+    def toString(self):
+        return f'picked: {self.picked} delivered: {self.delivered} '        
 
     

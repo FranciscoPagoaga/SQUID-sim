@@ -5,7 +5,11 @@ def main():
     fileNameMap = sys.argv[1]
     fileNameDeliveries = sys.argv[2]
     newRobot = Robot(fileNameMap,fileNameDeliveries)
-    newRobot.BreadthFirstSearch()
+    f = open("statesSet.txt", "a")
+    # for asd in newRobot.BreadthFirstSearch():
+    #     f.write(asd + "\n")
+        
+    f.close()
     print()
 
 if __name__ == "__main__":

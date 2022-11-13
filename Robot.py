@@ -1,29 +1,33 @@
 import sys
-from StateNode import StateNode
+from Node import Node
 from DeliveryState import DeliveryState
-
+from Problem import Problem
 
 class Robot:
     def __init__(self, fileNameMap, fileNameDeliveries):
         self.posY = -1
         self.posX = -1
         self.posZ = 0
-        self.maximumCost = 0
-
+        self.maxCost = 0
         # Border for future validations
         self.borderX = 0
         self.borderY = 0
+        
         # File opening to assign map coordinate map
-        lines = self.readMap(fileNameMap)
-        self.coordinateMap = self.loadMap(lines)
+        linesMap = self.readMap(fileNameMap)
+        self.coordinateMap = self.loadMap(linesMap)
 
         # File opening to create delivery list
-        lines = self.readMap(fileNameDeliveries)
-        tmpDeliveries = self.loadDeliveries(lines)
+        linesDeliveries = self.readMap(fileNameDeliveries)
+        tmpDeliveries = self.loadDeliveries(linesDeliveries)
 
         # Root state node creation
-        self.rootNode = StateNode(
-            0, None, tmpDeliveries, None, self.posY, self.posX, self.posZ)
+        self.rootNode = Node(0, None, tmpDeliveries, None, self.posX, self.posY, self.posZ)
+        borders = linesMap[0].split(",")
+        self.problem = Problem(self.rootNode.state, self.loadMap(linesMap), int(linesDeliveries[0]), int(borders[0]),int(borders[1]))
+
+        # listaprueba = [self.rootNode]
+        # print(self.isNotInFrontier(self.rootNode,listaprueba))
 
     def readMap(self, fileName):
         with open(fileName, "r") as file:
@@ -66,7 +70,7 @@ class Robot:
             line = line.strip()
             if isFirst:
                 # Sets a maximum cost for later on searches
-                self.maximumCost = int(line)
+                self.maxCost = int(line)
                 isFirst = False
             else:
                 # Calls functino to return created object
@@ -82,35 +86,63 @@ class Robot:
         # split the coordinates
         PosList = line[1].split(",")
         # Skips the first parenthesis inside the splitted result
-        loadposY = int((PosList[0])[1:])
-        loadposX = int(PosList[1])
+        loadposX = int((PosList[0])[1:])
+        loadposY = int(PosList[1])
         # Skips the last parenthesis inside the splitted result
         loadPosZ = int((PosList[2])[:-1])
         
         #split coordinates
         PosList = line[3].split(",")
         # Skips the first parenthesis inside the splitted result
-        dropposY = int((PosList[0])[1:])
-        dropposX = int(PosList[1])
+        dropposX = int((PosList[0])[1:])
+        dropposY = int(PosList[1])
         # Skips the last parenthesis inside the splitted result
         dropPosZ = int((PosList[2])[:-1])
-        return DeliveryState(loadDestination, loadposY, loadposX, loadPosZ, dropDestination, dropposY, dropposX, dropPosZ)
+        return DeliveryState(loadDestination, loadposX, loadposY, loadPosZ, dropDestination, dropposX, dropposY, dropPosZ)
 
     def BreadthFirstSearch(self):
-        if(self.isMoveValid("x",1)):
-            print("valid move")
-        else:
-            print("not valid")
-    # This validates if the move could be valid
+        #Creates a node and assigns the rootnode
+        node = self.rootNode
+        #This are going to be our 2 most important tools, explored and frontier
+        #with frontier we will know what next node we must explore
+        #with explored we will know if a certain movement is already done
+        frontier = []
+        explored = set()
+        frontier.append(node)
+        f = open("states.txt", "a")
+        cont = 1
+        # f.write(node.state.toString() + "\n")
+        while True:
+            #if frontier gets to a point where its empty, bfs ends
+            if(len(frontier) == 0):
+                return explored
 
-    def isMoveValid(self, axis, value):
+            #node now is a pointer that gets assigned the first position inside a queue
+            node = frontier.pop(0)
+            explored.add(node.state.toString())
+            f.write(node.state.toString() + "\n")
+            cont = cont + 1
+            #We must validate if the path we are currently taken has already passed our max path cost
+            #if it does, we stop searching in that way
+            count = 0
+            for childNode in self.problem.getActions(node):
+                if(childNode.state.toString() not in explored and self.isNotInFrontier(childNode, frontier)):
+                    if(node.state.toString() == "x: 7 y: 0 z: 0 deliveries: picked: False delivered: False picked: False delivered: False picked: False delivered: False picked: False delivered: False "):
+                        print(childNode.state.toString())
+                        frontier.append(childNode)
+                    node.addChild(childNode)
+                    frontier.append(childNode)
+                    # explored.add(childNode.state.toString())
+
+    # This validates if the move could be valid
+    def isMoveValid(self, axis, value, node):
         # If the axis is X it checks if the move is valid by checking the border
         if (axis == "y"):
-            if ((self.posY + value) < self.borderX and (self.posY + value) >= 0):
+            if ((node.state.posY + value) < self.borderY and (node.state.posY + value) >= 0):
                 #Condition to validate if the move has a Border, and obstacle, or is up on the shelf
-                if  (self.coordinateMap[self.posY+value][self.posX] == "B" or
-                    self.coordinateMap[self.posY+value][self.posX] == "X" or 
-                    self.coordinateMap[self.posY+value][self.posX].isnumeric() or
+                if  (self.coordinateMap[node.state.posY+value][node.state.posX] == "B" or
+                    self.coordinateMap[node.state.posY+value][node.state.posX] == "X" or 
+                    self.coordinateMap[node.state.posY+value][node.state.posX].isnumeric() or
                     self.posZ > 0):
                     return False
                 else:
@@ -121,9 +153,9 @@ class Robot:
             #This gets a little convoluted but hang on.
             #If on posX value is out of bounds, or it moves 
             #to a position with a border or obstacle, its false
-            if ((self.posX + value) < self.borderY and (self.posX + value) >= 0):
-                if  (self.coordinateMap[self.posY][self.posX+value] == "B" or
-                    self.coordinateMap[self.posY][self.posX+value] == "X"): 
+            if ((node.state.posX + value) < self.borderX and (node.state.posX + value) >= 0):
+                if  (self.coordinateMap[node.state.posY][node.state.posX+value] == "B" or
+                    self.coordinateMap[node.state.posY][node.state.posX+value] == "X"): 
                     return False
                 else:
                     #now, if it is valid, we need to check if the 
@@ -132,8 +164,8 @@ class Robot:
                     if(self.posZ > 0):
                         #If the robot is on the shelf, it can only move if it has a border,
                         #or a number on the north of its future position 
-                        if  (self.coordinateMap[self.posY-1][self.posX+value].isnumeric() or
-                            self.coordinateMap[self.posY-1][self.posX+value] == "B"):
+                        if  (self.coordinateMap[node.state.posY-1][node.state.posX+value].isnumeric() or
+                            self.coordinateMap[node.state.posY-1][node.state.posX+value] == "B"):
                             return True
                         else:
                             return False
@@ -146,7 +178,7 @@ class Robot:
             #Z axis is simpler, just check if there is a Border on its north
             #you must also check if the movement upwards is still on the range
             #of the shelf, or it is going below zero level
-            if  (self.coordinateMap[self.posY-1][self.posX] == "B" and  
+            if  (self.coordinateMap[node.state.posY-1][self.posX] == "B" and  
                 (self.posZ + value < self.getShelfLevels() and 
                 self.posZ + value >0)):
                 return True
@@ -161,3 +193,54 @@ class Robot:
             return int(self.coordinateMap[self.posY-1][self.posX-1])
         else:
             return -1
+
+    #returns a new DeliveryState if a change has been done 
+    def searchDeliveryOcurrence(self, deliveryStates, posX, posY, posZ):
+        deliveryResult = []
+        flag = 0
+        for delivery in deliveryStates:
+            if(delivery.picked == False):
+                if  (delivery.loadPosX == posX and 
+                    delivery.loadPosY == posY and
+                    delivery.loadPosZ == posZ and
+                    flag == 0):
+                    delivery.picked = True
+                    flag = flag  + 1
+            elif(delivery.delivered == False):
+                if  (delivery.dropPosX == posX and
+                    delivery.dropPosY == posY and
+                    delivery.dropPosZ == posZ and
+                    flag == 0):
+                    delivery.delivered = True
+                    flag = flag + 1
+            deliveryResult.append(delivery)
+        return deliveryResult
+
+    def isLoadable(self, deliveryStates):
+        for delivery in deliveryStates:
+            if(delivery.picked == True and delivery.picked == False):
+                return False
+        return True
+
+    #returns if in that coordinate there is a pick up or a delivery and then 
+    def isOnCoordinate(self, deliveryStates ,posX,posY,posZ):
+        for delivery in deliveryStates:
+            if  (delivery.picked == False):
+                if(delivery.loadPosX == posX and delivery.loadPosY == posY and delivery.loadPosZ == posZ ):
+                    return "load"
+            elif (delivery.delivered == False):
+                if(delivery.dropPosX == posX and delivery.dropPosY == posY and delivery.dropPosZ == posZ ):
+                    return "put"
+        return ""
+
+
+    def leftDeliveries(self, deliveryStates):
+        for delivery in deliveryStates:
+            if(delivery.picked == False or delivery.picked == False ):
+                return True
+
+    def isNotInFrontier(self, node, frontier):
+        for frontierNode in frontier:
+            if(frontierNode.state.toString() == node.state.toString()):
+                return False
+        return True
