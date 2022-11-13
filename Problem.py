@@ -1,5 +1,5 @@
 from Node import Node
-
+from DeliveryState import DeliveryState
 class Problem:
     def __init__(self, initalState, coordinateMap, maxCost, borderY, borderX):
         self.initialState = initalState
@@ -10,31 +10,41 @@ class Problem:
         
         rootNode = Node(0, None, self.initialState.deliveryState, None, 9, 1, 0)
 
-        # for node in self.getActions(rootNode):
-        #     print(node.state.toString())
-
     def getActions(self, node):
         returnedNodes = []
         if(node.cost < self.maxCost):
-            deliveryType = self.isOnCoordinate(node.state.deliveryState,node.state.posX, node.state.posY, node.state.posZ) 
-            if(deliveryType != ""):
-                if(node.state.posZ>0 and deliveryType == "load" and self.isLoadable(node.state.deliveryState)):
-                    updatedDeliveries = self.searchDeliveryOcurrence(node.state.deliveryState, node.state.posX, node.state.posY, node.state.posZ)
-                    tmpNode = Node(node.cost + 1.5, node, updatedDeliveries, "V_PICK", node.state.posX, node.state.posY, node.state.posZ)
+            #If it wants to pick an item, it checks if there is more than one pickable item,
+            #if there is it iterates through a list
+            for position in self.pickList(node):
+                if(node.state.posZ>0 ):
+                    #Creates a new delivery state item, due to problems with pointers and the queue
+                    tmpDelivery = self.newDeliveryState(node.state.deliveryState)
+                    #it assigns the position as true and creates the node
+                    tmpDelivery[position].picked = True
+                    tmpNode = Node(node.cost + 1.5, node, tmpDelivery, "V_PICK", node.state.posX, node.state.posY, node.state.posZ)
                     returnedNodes.append(tmpNode)
-                elif(node.state.posZ>0 and deliveryType == "put"):
-                    updatedDeliveries = self.searchDeliveryOcurrence(node.state.deliveryState, node.state.posX, node.state.posY, node.state.posZ)
-                    tmpNode = Node(node.cost + 2.5, node, updatedDeliveries, "V_PUT", node.state.posX, node.state.posY, node.state.posZ)
+                else:
+                    #Creates a new delivery state item, due to problems with pointers and the queue
+                    tmpDelivery = self.newDeliveryState(node.state.deliveryState)
+                    #it assigns the position as true and creates the node
+                    tmpDelivery[position].picked = True
+                    tmpNode = Node(node.cost + 0.5, node, tmpDelivery, "F_PICK", node.state.posX, node.state.posY, node.state.posZ)
                     returnedNodes.append(tmpNode)
-                elif(node.state.posZ == 0 and deliveryType == "load" and self.isLoadable(node.state.deliveryState)):
-                    updatedDeliveries = self.searchDeliveryOcurrence(node.state.deliveryState, node.state.posX, node.state.posY, node.state.posZ)
-                    tmpNode = Node(node.cost + 0.5, node, updatedDeliveries, "F_PICK", node.state.posX, node.state.posY, node.state.posZ)
+            
+            #checks if there can be a delivery done, and gives the position in the deliveryList
+            deliverPos = self.deliverable(node)
+            #if the funtion returns -1, it doesnt have a deliverable item
+            if(deliverPos != -1):
+                #if it does it creates, and check if it is on ground level or up on a shelf
+                tmpDelivery = self.newDeliveryState(node.state.deliveryState)
+                tmpDelivery[deliverPos].delivered = True
+                if(node.state.posZ>0):
+                    tmpNode = Node(node.cost + 2.5, node, tmpDelivery, "V_PUT", node.state.posX, node.state.posY, node.state.posZ)
                     returnedNodes.append(tmpNode)
-                elif(node.state.posZ == 0 and deliveryType == "put"):
-                    updatedDeliveries = self.searchDeliveryOcurrence(node.state.deliveryState, node.state.posX, node.state.posY, node.state.posZ)                        
-                    tmpNode = Node(node.cost + 0.5, node, updatedDeliveries, "F_PUT", node.state.posX, node.state.posY, node.state.posZ)
+                else:
+                    tmpNode = Node(node.cost + 0.5, node, tmpDelivery, "F_PUT", node.state.posX, node.state.posY, node.state.posZ)
                     returnedNodes.append(tmpNode)
-                        
+       
             #validation to see if a movement to the west could be valid
             if(self.isMoveValid("y",1,node)):
                 tmpNode = Node(node.cost + 1, node, node.state.deliveryState, "F_SOUTH", node.state.posX, node.state.posY + 1, node.state.posZ)
@@ -67,13 +77,13 @@ class Problem:
                     returnedNodes.append(tmpNode)
 
                 #Checks if a movement upwards is valid in that position
-                # if(self.isMoveValid("z",1,node)):
-                #     tmpNode = Node(node.cost + 4, node, node.state.deliveryState, "V_UP", node.state.posX, node.state.posY, node.state.posZ + 1)
-                #     returnedNodes.append(tmpNode)
-                # #Checks if a movement downwards is valid in that position
-                # if(self.isMoveValid("z",-1,node)):
-                #     tmpNode = Node(node.cost + 3, node, node.state.deliveryState, "V_DOWN", node.state.posX, node.state.posY, node.state.posZ - 1)
-                #     returnedNodes.append(tmpNode)
+                if(self.isMoveValid("z",1,node)):
+                    tmpNode = Node(node.cost + 4, node, node.state.deliveryState, "V_UP", node.state.posX, node.state.posY, node.state.posZ + 1)
+                    returnedNodes.append(tmpNode)
+                #Checks if a movement downwards is valid in that position
+                if(self.isMoveValid("z",-1,node)):
+                    tmpNode = Node(node.cost + 3, node, node.state.deliveryState, "V_DOWN", node.state.posX, node.state.posY, node.state.posZ - 1)
+                    returnedNodes.append(tmpNode)
                 
                 
         return returnedNodes
@@ -123,8 +133,8 @@ class Problem:
             #you must also check if the movement upwards is still on the range
             #of the shelf, or it is going below zero level
             if  (self.coordinateMap[node.state.posY-1][node.state.posX] == "B" and  
-                (node.state.posZ + value < self.getShelfLevels(node) and 
-                node.state.posZ + value >0)):
+                (node.state.posZ + value <= self.getShelfLevels(node) and 
+                node.state.posZ + value >= 0)):
                 return True
             else:
                 return False
@@ -138,40 +148,79 @@ class Problem:
         else:
             return -1
 
-    def isOnCoordinate(self, deliveryStates ,posX,posY,posZ):
-        for delivery in deliveryStates:
-            if  (delivery.picked == False):
-                if(delivery.loadPosX == posX and delivery.loadPosY == posY and delivery.loadPosZ == posZ ):
-                    return "load"
-            elif (delivery.delivered == False):
-                if(delivery.dropPosX == posX and delivery.dropPosY == posY and delivery.dropPosZ == posZ ):
-                    return "put"
-        return ""
-
-    def searchDeliveryOcurrence(self, deliveryStates, posX, posY, posZ):
+    #Creates a new deliveryState to deal with reference errors
+    def newDeliveryState(self, deliveryStates):
         deliveryResult = []
-        flag = 0
         for delivery in deliveryStates:
-            if(delivery.picked == False):
-                if  (delivery.loadPosX == posX and 
-                    delivery.loadPosY == posY and
-                    delivery.loadPosZ == posZ and
-                    flag == 0):
-                    delivery.picked = True
-                    flag = flag  + 1
-            elif(delivery.delivered == False):
-                if  (delivery.dropPosX == posX and
-                    delivery.dropPosY == posY and
-                    delivery.dropPosZ == posZ and
-                    flag == 0):
-                    delivery.delivered = True
-                    flag = flag + 1
-            deliveryResult.append(delivery)
+            loadDestination = delivery.loadDestination
+            loadPosX = delivery.loadPosX
+            loadPosY = delivery.loadPosY
+            loadPosZ = delivery.loadPosZ
+            dropDestination = delivery.dropDestination
+            dropPosX = delivery.dropPosX
+            dropPosY = delivery.dropPosY
+            dropPosZ = delivery.dropPosZ
+            picked = delivery.picked
+            delivered = delivery.delivered
+            tmpDelivery = DeliveryState(loadDestination, loadPosX, loadPosY, loadPosZ, dropDestination, dropPosX, dropPosY, dropPosZ, picked, delivered)
+            deliveryResult.append(tmpDelivery)
         return deliveryResult
 
-    def isLoadable(self, deliveryStates):
-        for delivery in deliveryStates:
-            if(delivery.picked == True and delivery.picked == False):
+    #function to check if all deliveries have been done
+    def goalTest(self, state):
+        for deliveries in state.deliveryState:
+            if(not deliveries.picked or not deliveries.delivered):
                 return False
         return True
-    # def actions(self, state):
+
+    #returns a list of numbers to check if theres more than one item
+    #you can pick in that given coordinate
+    def pickList(self, node):
+        positionList = []
+        counter = 0
+        for deliveryState in node.state.deliveryState:
+            if(deliveryState.picked == True and deliveryState.delivered == False):
+                return []
+            if(node.state.posZ > 0):
+                if  (deliveryState.picked == False and 
+                    node.state.posX == deliveryState.loadPosX and 
+                    node.state.posY-1 == deliveryState.loadPosY and 
+                    node.state.posZ == deliveryState.loadPosZ):
+                    positionList.append(counter)
+            else:    
+                if  (deliveryState.picked == False and 
+                    node.state.posX == deliveryState.loadPosX and 
+                    node.state.posY == deliveryState.loadPosY and 
+                    node.state.posZ == deliveryState.loadPosZ):
+                    positionList.append(counter)
+            counter = counter + 1
+        return positionList
+    
+    #checks if we're in a coordinate to do a delivery and also
+    #if we have that order picked to deliver
+    def deliverable(self, node):
+        counter = 0
+        for deliveryState in node.state.deliveryState:
+            #checks if its either on ground level or up on a shelf
+            if(node.state.posZ >0):
+                #checks if something is picked and hasnt been delivered in that coordinate
+                #if its on a counter it has to check if it has a delivery position in front of him
+                if  (deliveryState.picked == True and 
+                    node.state.posX == deliveryState.dropPosX and 
+                    node.state.posY-1 == deliveryState.dropPosY and 
+                    node.state.posZ == deliveryState.dropPosZ and
+                    deliveryState.delivered == False):
+                    #returns the position in the list of deliveryStates to modify
+                    return counter
+            else:
+                #checks if it is already picked and if the delivery hasnt been done
+                #checks if a delivery can be done at that position
+                if  (deliveryState.picked == True and 
+                    node.state.posX == deliveryState.dropPosX and 
+                    node.state.posY == deliveryState.dropPosY and 
+                    node.state.posZ == deliveryState.dropPosZ and
+                    deliveryState.delivered == False):
+                    #returns the position in the list of deliveryStates to modify
+                    return counter
+            counter = counter + 1 
+        return -1
