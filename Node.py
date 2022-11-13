@@ -1,12 +1,13 @@
 from DeliveryState import DeliveryState
-class StateNode:
+from State import State
+class Node:
 
     def __init__(self, cost, parent, deliveryStates, action, posX, posY, posZ):
         self.cost=cost
         self.parent=parent
-        self.deliveryStates = deliveryStates
         self.childs = []
         self.action = action
-        self.posX = posX
-        self.posY = posY
-        self.posZ = posZ
+        self.state = State(posX, posY, posZ, deliveryStates)
+
+    def addChild(self, node):
+        self.childs.append(node)
