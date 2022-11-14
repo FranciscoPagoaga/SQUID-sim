@@ -11,9 +11,5 @@ def main():
         f.write(move + "\n")
     f.close()
 
-    f = open("ucs.txt", "w")
-    for move in newRobot.uniformCostSearch():
-        f.write(move + "\n")
-
 if __name__ == "__main__":
     main()

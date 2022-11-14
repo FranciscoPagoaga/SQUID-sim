@@ -44,5 +44,12 @@ class PriorityQueue:
                 return True
         return False
 
+    def swapNode(self, node):
+        count = 0
+        for frontierNode in self.queue:
+            if(node.state.toString() == frontierNode.state.toString() and frontierNode.cost > node.cost):
+                self.queue[count] = node
+            count = count + 1
+
     def getSize(self):
         return len(self.queue)

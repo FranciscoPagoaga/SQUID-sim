@@ -107,7 +107,8 @@ class Robot:
         while True:
             #if frontier gets to a point where its empty, bfs ends
             if(len(frontier) == 0):
-                return ["No se encontro solución"]
+                print("No se encontro solucion")
+                return []
 
             #node now is a pointer that gets assigned the first position inside a queue
             node = frontier.pop(0)
@@ -133,6 +134,7 @@ class Robot:
         while True:
             if(frontier.isEmpty()):
                 print("No se encontro solucion")
+                return []
             
             node = frontier.delete()
             explored.add(node.state.toString())
@@ -146,8 +148,8 @@ class Robot:
                         return self.solution(childNode)
                     node.addChild(childNode)
                     frontier.insert(childNode)
-
-
+                elif(frontier.isOnQueue(childNode)):
+                    frontier.swapNode(childNode)
 
     def isNotInFrontier(self, node, frontier):
         for frontierNode in frontier:
@@ -156,7 +158,6 @@ class Robot:
         return True
 
     def solution(self, node):
-        print(node.cost)
         solutionList = []
         while(node.parent != None):
             solutionList.append(node.action)
